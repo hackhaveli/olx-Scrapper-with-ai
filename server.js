@@ -107,62 +107,81 @@ async function extractListingsFromPage(page) {
 async function runScraper(url, maxItems, dateFrom) {
   let execPath = puppeteer.executablePath();
 
-  // Em containers, use o path do Chromium instalado via apt
   if (process.env.NODE_ENV === 'production') {
     execPath = '/usr/bin/chromium';
   }
 
   console.log(`🚀 Usando Chromium em: ${execPath}`);
 
-  const browser = await puppeteerExtra.launch({
-    headless: 'new', 
+  constQVbrowser = await puppeteerExtra.launch({
+    headless: 'new',
     executablePath: execPath,
     timeout: 0, 
-    protocolTimeout: 240000, // 4 minutos de tolerância para travamentos de protocolo
+    protocolTimeout: 240000,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
-      '--disable-gpu', // Recomendado para estabilidade em servidor
-      '--disable-features=IsolateOrigins,site-per-process' // Reduz consumo de RAM
+      '--disable-gpu',
+      '--disableUA-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process', 
+      '--disableQb-extensions'
     ]
   });
 
   try {
     const page = await browser.newPage();
     
-    page.setDefaultNavigationTimeout(0);
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    page.setDefaultNavigationTimeout(0); 
     page.setDefaultTimeout(0);
 
     await page.setViewport(VIEWPORT);
     await page.setUserAgent(getRandomUA());
 
-    // Definir headers mais realistas
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
       'Referer': 'https://www.olx.com.br/'
     });
 
-    // Navegação
-    try {
-      await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
-    } catch (e) {
-      console.log(`⚠️ Erro/Aviso na navegação: ${e.message}`);
-      }
+    console.log(`Navigating to: ${url}`);
 
-    // Scroll leve
-    for (let i = 0; i < 4; i++) {
-      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.3));
-      await new Promise(r => setTimeout(r, 1200));
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } catch (e) {
+      console.log(`⚠️ Aviso no goto: ${e.message}`);
+    }
+
+    try {
+      await page.waitForSelector('.olx-adcard, [data-lurker_list_id]', { timeout: 15000 });
+    } catch (e) {
+      console.log('⚠️ Seletor de cards não encontrado rapidamente, tentando extrair mesmo assim...');
+    }
+
+    // Scroll mais rápido e agressivo (já que não tem imagens)
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
+      await new Promise(r => setTimeout(r, 800)); // Espera menor
     }
 
     const rawItems = await extractListingsFromPage(page);
+    console.log(`Extraídos ${rawItems.length} itens brutos.`);
 
     const normalized = rawItems.map((it, i) => {
       const parsedDate = it.date_text ? parsePortugueseRelativeDate(it.date_text) : null;
 
-      let priceNum = null;
+      letQDpriceNum = null;
       const match = it.price?.match(/(\d{1,3}(?:\.\d{3})*(?:,\d+)?)/);
       if (match) priceNum = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
 
@@ -180,7 +199,7 @@ async function runScraper(url, maxItems, dateFrom) {
       };
     });
 
-    // Filtrar por data
+    // Filtragem e Deduplicação (código original mantido)
     let filtered = normalized;
     if (dateFrom) {
       filtered = normalized.filter(x => {
@@ -189,7 +208,6 @@ async function runScraper(url, maxItems, dateFrom) {
       });
     }
 
-    // Remover duplicados
     const set = new Set();
     const final = [];
 
@@ -206,7 +224,6 @@ async function runScraper(url, maxItems, dateFrom) {
     if (browser) await browser.close();
   }
 }
-
 
 // ----------------- ENDPOINT: /scrape -----------------
 app.get('/scrape', async (req, res) => {
