@@ -115,17 +115,25 @@ async function runScraper(url, maxItems, dateFrom) {
   console.log(`🚀 Usando Chromium em: ${execPath}`);
 
   const browser = await puppeteerExtra.launch({
-    headless: true,
+    headless: 'new', 
     executablePath: execPath,
+    timeout: 0, 
+    protocolTimeout: 240000, // 4 minutos de tolerância para travamentos de protocolo
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
+      '--disable-dev-shm-usage',
+      '--disable-gpu', // Recomendado para estabilidade em servidor
+      '--disable-features=IsolateOrigins,site-per-process' // Reduz consumo de RAM
     ]
   });
 
   try {
     const page = await browser.newPage();
+    
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
+
     await page.setViewport(VIEWPORT);
     await page.setUserAgent(getRandomUA());
 
@@ -136,17 +144,12 @@ async function runScraper(url, maxItems, dateFrom) {
       'Referer': 'https://www.olx.com.br/'
     });
 
-    // Tentar navegação com timeout aumentado e fallback para waitForNavigation
+    // Navegação
     try {
-      await page.goto(url, { waitUntil: 'networkidle0', timeout: 5000 });
-      } catch (e) {
-    if (e.name === 'TimeoutError') {
-      console.log('⏱️ Timeout na navegação, continuando mesmo assim...');
-      await new Promise(r => setTimeout(r, 5000));
-    } else {
-      throw e;
-    }
-  }
+      await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
+    } catch (e) {
+      console.log(`⚠️ Erro/Aviso na navegação: ${e.message}`);
+      }
 
     // Scroll leve
     for (let i = 0; i < 4; i++) {
@@ -200,13 +203,14 @@ async function runScraper(url, maxItems, dateFrom) {
     return final.slice(0, maxItems);
 
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
 
 
 // ----------------- ENDPOINT: /scrape -----------------
 app.get('/scrape', async (req, res) => {
+  req.setTimeout(600000);
   const { url, date_from, limit } = req.query;
 
   if (!url) {
@@ -227,13 +231,17 @@ app.get('/scrape', async (req, res) => {
 
   } catch (err) {
     console.error('❌ Erro no scraping:', err);
-    res.status(500).json({ error: err.message });
+    if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+    }
   }
 });
 
 
 // ----------------- ENDPOINT: /scrape-olx -----------------
 app.get('/scrape-olx', async (req, res) => {
+  req.setTimeout(600000);
+
   const { q, state = 'mg', category, limit = 20 } = req.query;
 
   if (!q) {
@@ -268,7 +276,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     service: 'OLX Scraper API',
-    version: 'final-auto-executablePath',
+    version: 'final-long-process-fix',
     docs: ['/scrape', '/scrape-olx', '/health']
   });
 });
