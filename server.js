@@ -13,6 +13,17 @@ puppeteerExtra.use(StealthPlugin());
 const app = express();
 app.use(express.json());
 
+let activeBrowser = null;
+
+process.on('SIGTERM', async () => {
+  console.log('[SHUTDOWN] SIGTERM recebido, fechando browser...');
+  if (activeBrowser) {
+    try { await activeBrowser.close(); } catch {}
+    activeBrowser = null;
+  }
+  process.exit(0);
+});
+
 const DEFAULT_LIMIT = 20;
 const VIEWPORT = { width: 1280, height: 800 };
 
@@ -131,8 +142,9 @@ async function extractListingsFromPage(page) {
 
 // ----------------- RUN SCRAPER -----------------
 async function runScraper(url, maxItems, dateFrom) {
-  let execPath = puppeteer.executablePath();
-  if (process.env.NODE_ENV === 'production') execPath = '/usr/bin/chromium';
+  let execPath = process.env.NODE_ENV === 'production'
+    ? (process.env.CHROMIUM_PATH || '/usr/bin/chromium')
+    : puppeteer.executablePath();
 
   console.log(`[1] Iniciando Chromium em: ${execPath}`);
 
@@ -144,9 +156,12 @@ async function runScraper(url, maxItems, dateFrom) {
     args: [
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
       '--disable-gpu', '--disable-accelerated-2d-canvas', '--no-first-run',
-      '--no-zygote', '--single-process', '--disable-extensions'
+      '--no-zygote', '--single-process', '--disable-extensions',
+      '--disable-background-networking', '--disable-sync', '--disable-translate',
+      '--disable-default-apps', '--mute-audio', '--no-err-sandbox'
     ]
   });
+  activeBrowser = browser;
 
   try {
     const page = await browser.newPage();
@@ -154,7 +169,7 @@ async function runScraper(url, maxItems, dateFrom) {
     // Bloqueio de recursos
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) req.abort();
+      if (['image', 'media'].includes(req.resourceType())) req.abort();
       else req.continue();
     });
 
@@ -169,25 +184,37 @@ async function runScraper(url, maxItems, dateFrom) {
 
     console.log(`[2] Navegando para: ${url}`);
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
     } catch (e) {
       console.log(`[AVISO] Goto timeout ou erro: ${e.message}`);
     }
 
+    // Pequena pausa para renderização JS
+    await new Promise(r => setTimeout(r, 2000));
+
     console.log(`[3] Aguardando cards...`);
     try {
-      await page.waitForSelector('.olx-adcard, [data-lurker_list_id]', { timeout: 10000 });
+      await page.waitForSelector('.olx-adcard', { timeout: 30000 });
     } catch (e) {
-      console.log(`[AVISO] Seletor não apareceu, tentando extrair direto.`);
+      console.log(`[AVISO] Seletor .olx-adcard não apareceu em 30s, tentando extrair direto.`);
     }
 
     console.log(`[4] Extraindo dados brutos...`);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 1000));
     }
+    await new Promise(r => setTimeout(r, 2000));
     const rawItems = await extractListingsFromPage(page);
     console.log(`[5] Itens brutos: ${rawItems.length}`);
+    if (rawItems.length === 0) {
+      const debug = await page.evaluate(() => ({
+        title: document.title,
+        bodyStart: document.body?.innerHTML?.substring(0, 500) || '',
+        url: location.href
+      }));
+      console.log(`[DEBUG] Nenhum item encontrado. Title: "${debug.title}", URL: ${debug.url}`);
+    }
     const normalized = [];
     console.log(`[6] Iniciando loop de normalização...`);
     
@@ -246,7 +273,7 @@ async function runScraper(url, maxItems, dateFrom) {
     throw fatalError;
   } finally {
     if (browser) {
-      // Força fechamento com timeout para não travar a request
+      activeBrowser = null;
       const closePromise = browser.close();
       const timeoutPromise = new Promise(resolve => setTimeout(resolve, 3000));
       await Promise.race([closePromise, timeoutPromise])
