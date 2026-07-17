@@ -9,22 +9,15 @@ services:
     repo: https://github.com/hackhaveli/olx-Scrapper-with-ai.git
     branch: main
   
-    startCommand: "npm start" 
     numInstances: 1
     healthCheckPath: /health
-    healthCheckTimeout: 600
-    healthCheckInterval: 60
-    autoStart: true
 
-    cpu: 0.5
-    memory: 512Mi
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
-    concurrency:
-      softLimit: 5
-      hardLimit: 10
+      - key: GEMINI_API_KEY
+        sync: false
 
     dockerfilePath: Dockerfile
