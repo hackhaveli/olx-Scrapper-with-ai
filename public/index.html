@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OLX Deal Finder — AI-Powered Phone Search India</title>
+  <meta name="description" content="Find the best phone deals near you on OLX India. Multi-location search, AI-powered deal analysis, budget filter, and data export." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root {
+      --bg:       #07080e;
+      --surf:     #0f1120;
+      --surf2:    #151829;
+      --surf3:    #1c2035;
+      --border:   rgba(139,92,246,.2);
+      --border2:  rgba(139,92,246,.09);
+      --purple:   #7c3aed;
+      --purple-l: #a855f7;
+      --accent:   #8b5cf6;
+      --violet:   #6d28d9;
+      --green:    #10b981;
+      --green-l:  #34d399;
+      --amber:    #f59e0b;
+      --red:      #ef4444;
+      --blue:     #3b82f6;
+      --cyan:     #06b6d4;
+      --text:     #f0f4ff;
+      --text-2:   #94a3b8;
+      --text-3:   #64748b;
+      --r:        14px;
+      --r-sm:     8px;
+    }
+
+    body {
+      font-family:'Inter',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    body::before {
+      content:'';
+      position:fixed;inset:0;
+      background-image:
+        linear-gradient(rgba(139,92,246,.035) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(139,92,246,.035) 1px,transparent 1px);
+      background-size:52px 52px;
+      pointer-events:none;z-index:0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position:relative;z-index:10;
+      padding:36px 20px 0;
+      text-align:center;
+    }
+    .hero-glow {
+      position:absolute;width:600px;height:350px;
+      background:radial-gradient(ellipse,rgba(139,92,246,.13) 0%,transparent 70%);
+      top:-100px;left:50%;transform:translateX(-50%);
+      pointer-events:none;
+    }
+    .logo-pill {
+      display:inline-flex;align-items:center;gap:7px;
+      background:rgba(139,92,246,.1);
+      border:1px solid var(--border);
+      border-radius:999px;padding:5px 16px;
+      font-size:11px;font-weight:700;
+      color:var(--purple-l);letter-spacing:.8px;
+      margin-bottom:22px;
+    }
+    h1 {
+      font-size:clamp(2rem,5vw,3.4rem);
+      font-weight:900;line-height:1.12;
+      background:linear-gradient(135deg,#fff 0%,var(--purple-l) 55%,var(--cyan) 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      margin-bottom:14px;
+    }
+    .subtitle {color:var(--text-2);font-size:1rem;max-width:540px;margin:0 auto 36px;line-height:1.65;}
+
+    /* ── SEARCH CARD ── */
+    .search-card {
+      position:relative;z-index:10;
+      max-width:920px;margin:0 auto 36px;padding:0 16px;
+    }
+    .glass {
+      background:rgba(15,17,32,.88);
+      backdrop-filter:blur(28px);
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:28px;
+      box-shadow:0 4px 40px rgba(0,0,0,.55),0 0 80px rgba(139,92,246,.05);
+    }
+
+    /* Mode tabs */
+    .tabs {
+      display:flex;gap:6px;
+      background:var(--surf2);border-radius:10px;padding:4px;
+      width:fit-content;margin-bottom:26px;
+    }
+    .tab {
+      padding:8px 18px;border:none;border-radius:7px;
+      font-family:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .2s;
+      color:var(--text-3);background:transparent;
+    }
+    .tab.active {
+      background:linear-gradient(135deg,var(--purple),var(--accent));
+      color:#fff;
+      box-shadow:0 2px 14px rgba(139,92,246,.4);
+    }
+
+    /* Grid rows */
+    .row {display:grid;gap:12px;margin-bottom:12px;}
+    .row.c1{grid-template-columns:1fr;}
+    .row.c2{grid-template-columns:1fr 1fr;}
+    .row.c3{grid-template-columns:1fr 1fr 1fr;}
+    .row.c4{grid-template-columns:2fr 1fr 1fr 1fr;}
+    @media(max-width:620px){.row.c2,.row.c3,.row.c4{grid-template-columns:1fr;}}
+
+    .field{display:flex;flex-direction:column;gap:6px;}
+    label{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.6px;text-transform:uppercase;}
+
+    .iw{position:relative;}
+    .iw .ico{
+      position:absolute;left:11px;top:50%;transform:translateY(-50%);
+      color:var(--text-3);pointer-events:none;width:15px;height:15px;
+    }
+
+    input,select {
+      width:100%;
+      background:var(--surf2);
+      border:1px solid var(--border2);
+      border-radius:var(--r-sm);
+      color:var(--text);
+      font-family:inherit;font-size:13.5px;
+      padding:10px 13px;outline:none;
+      transition:border-color .2s,box-shadow .2s;
+      -webkit-appearance:none;
+    }
+    input.pi,select.pi{padding-left:34px;}
+    input::placeholder{color:var(--text-3);}
+    input:focus,select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(139,92,246,.18);
+    }
+    select option{background:var(--surf2);}
+
+    /* ── Multi-location chip input ── */
+    .chip-field {
+      background:var(--surf2);
+      border:1px solid var(--border2);
+      border-radius:var(--r-sm);
+      padding:7px 10px;
+      display:flex;flex-wrap:wrap;gap:6px;
+      cursor:text;
+      transition:border-color .2s,box-shadow .2s;
+      min-height:44px;align-items:center;
+    }
+    .chip-field:focus-within {
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(139,92,246,.18);
+    }
+    .chip {
+      display:inline-flex;align-items:center;gap:5px;
+      background:rgba(139,92,246,.18);
+      border:1px solid rgba(139,92,246,.3);
+      color:var(--purple-l);
+      border-radius:6px;padding:3px 9px;
+      font-size:12px;font-weight:600;
+      animation:chipIn .15s ease;
+    }
+    @keyframes chipIn{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
+    .chip-x {
+      cursor:pointer;color:rgba(139,92,246,.6);
+      font-size:14px;line-height:1;
+      transition:color .15s;
+    }
+    .chip-x:hover{color:var(--red);}
+    .chip-input {
+      background:transparent;border:none;outline:none;
+      color:var(--text);font-family:inherit;font-size:13px;
+      flex:1;min-width:120px;padding:2px 0;
+    }
+    .chip-input::placeholder{color:var(--text-3);}
+    .chip-hint{
+      font-size:10px;color:var(--text-3);margin-top:4px;
+    }
+
+    /* Preset location buttons */
+    .location-presets {
+      display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;
+    }
+    .preset-btn {
+      background:rgba(59,130,246,.08);
+      border:1px solid rgba(59,130,246,.2);
+      color:#93c5fd;
+      border-radius:6px;padding:3px 10px;
+      font-size:11px;font-weight:600;font-family:inherit;
+      cursor:pointer;transition:all .15s;
+    }
+    .preset-btn:hover{background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.4);}
+
+    /* Search button */
+    .search-btn {
+      width:100%;padding:13px;
+      background:linear-gradient(135deg,var(--violet),var(--accent));
+      border:none;border-radius:var(--r-sm);
+      color:#fff;font-family:inherit;font-size:15px;font-weight:700;
+      cursor:pointer;letter-spacing:.2px;
+      transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      margin-top:6px;
+    }
+    .search-btn:hover:not(:disabled){
+      transform:translateY(-1px);
+      box-shadow:0 4px 24px rgba(139,92,246,.5);
+    }
+    .search-btn:disabled{opacity:.55;cursor:not-allowed;}
+
+    /* Advanced toggle */
+    .adv-link {
+      background:none;border:none;color:var(--text-3);
+      font-family:inherit;font-size:12px;cursor:pointer;
+      display:flex;align-items:center;gap:4px;
+      margin-top:10px;padding:4px 0;transition:color .15s;
+    }
+    .adv-link:hover{color:var(--accent);}
+    .adv-link svg{transition:transform .2s;}
+    .adv-link.open svg{transform:rotate(180deg);}
+    .adv-body{display:none;margin-top:12px;}
+    .adv-body.show{display:block;}
+
+    /* ── AI ANALYSIS PANEL ── */
+    .ai-panel {
+      display:none;max-width:920px;margin:0 auto 22px;padding:0 16px;
+    }
+    .ai-inner {
+      background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(6,182,212,.07));
+      border:1px solid rgba(139,92,246,.3);
+      border-radius:var(--r);padding:22px;
+      position:relative;overflow:hidden;
+    }
+    .ai-inner::before {
+      content:'';
+      position:absolute;top:-40px;right:-40px;
+      width:160px;height:160px;
+      background:radial-gradient(circle,rgba(139,92,246,.15),transparent 70%);
+      pointer-events:none;
+    }
+    .ai-header {
+      display:flex;align-items:center;gap:10px;margin-bottom:16px;
+    }
+    .ai-badge {
+      display:inline-flex;align-items:center;gap:5px;
+      background:linear-gradient(135deg,var(--purple),var(--accent));
+      border-radius:999px;padding:4px 12px;
+      font-size:11px;font-weight:700;color:#fff;letter-spacing:.4px;
+    }
+    .ai-title {font-size:15px;font-weight:700;color:var(--text);}
+
+    .ai-best-pick {
+      background:rgba(16,185,129,.08);
+      border:1px solid rgba(16,185,129,.2);
+      border-radius:10px;padding:14px 16px;
+      margin-bottom:14px;
+    }
+    .ai-pick-label{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--green);text-transform:uppercase;margin-bottom:4px;}
+    .ai-pick-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;}
+    .ai-reasoning{font-size:13px;color:var(--text-2);line-height:1.6;}
+
+    .ai-scores {
+      display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;
+    }
+    .ai-score-box {
+      background:var(--surf3);border:1px solid var(--border2);
+      border-radius:10px;padding:10px 16px;text-align:center;
+    }
+    .ai-score-num{font-size:22px;font-weight:800;color:var(--green-l);}
+    .ai-score-lbl{font-size:10px;color:var(--text-3);font-weight:600;letter-spacing:.4px;text-transform:uppercase;}
+
+    .ai-flags-header{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+    .ai-flags {list-style:none;display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .ai-flags li {
+      display:flex;gap:8px;align-items:flex-start;
+      font-size:13px;color:var(--text-2);
+    }
+    .ai-flags li::before{content:'⚠';font-size:12px;flex-shrink:0;margin-top:1px;}
+
+    .ai-tip {
+      background:rgba(245,158,11,.07);
+      border:1px solid rgba(245,158,11,.18);
+      border-radius:8px;padding:10px 14px;
+      font-size:13px;color:#fcd34d;
+    }
+    .ai-tip strong{display:block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--amber);margin-bottom:4px;}
+
+    /* ── STATS BAR ── */
+    .stats-bar{display:none;max-width:920px;margin:0 auto 20px;padding:0 16px;}
+    .stats-inner{
+      display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+      background:rgba(15,17,32,.7);border:1px solid var(--border2);
+      border-radius:var(--r-sm);padding:10px 16px;
+    }
+    .stat{font-size:13px;color:var(--text-2);}
+    .stat strong{color:var(--text);font-weight:600;}
+    .sdiv{width:1px;height:14px;background:var(--border);}
+    .src-badge{
+      display:inline-flex;align-items:center;gap:4px;
+      padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;
+    }
+    .src-olx{background:rgba(16,185,129,.12);color:var(--green-l);border:1px solid rgba(16,185,129,.2);}
+    .src-post{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+
+    /* Export buttons */
+    .export-row {
+      display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;
+    }
+    .export-btn {
+      display:flex;align-items:center;gap:5px;
+      padding:5px 13px;border-radius:6px;
+      font-family:inherit;font-size:12px;font-weight:600;
+      cursor:pointer;transition:all .15s;border:1px solid;
+    }
+    .export-csv{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.25);color:var(--green-l);}
+    .export-csv:hover{background:rgba(16,185,129,.18);}
+    .export-json{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.25);color:#93c5fd;}
+    .export-json:hover{background:rgba(59,130,246,.18);}
+
+    /* ── LOADING ── */
+    .loading{display:none;flex-direction:column;align-items:center;gap:18px;padding:70px 20px;text-align:center;}
+    .spinner{
+      width:46px;height:46px;
+      border:3px solid var(--border);
+      border-top-color:var(--accent);
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loading p{color:var(--text-2);font-size:14px;}
+    .loading .sub{color:var(--text-3);font-size:12px;margin-top:-10px;}
+
+    /* ── ERROR ── */
+    .err-wrap{display:none;max-width:920px;margin:0 auto 20px;padding:0 16px;}
+    .err-inner{
+      background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+      border-radius:var(--r-sm);padding:14px 18px;
+      color:#fca5a5;font-size:14px;
+      display:flex;align-items:center;gap:10px;
+    }
+
+    /* ── RESULTS GRID ── */
+    #results{max-width:920px;margin:0 auto 70px;padding:0 16px;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(264px,1fr));gap:16px;}
+
+    /* ── CARD ── */
+    .card {
+      background:var(--surf);
+      border:1px solid var(--border2);
+      border-radius:var(--r);
+      overflow:hidden;
+      transition:transform .2s,box-shadow .2s,border-color .2s;
+      cursor:pointer;text-decoration:none;display:block;
+      animation:fadeUp .3s ease both;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+    .card:hover{
+      transform:translateY(-3px);
+      box-shadow:0 8px 36px rgba(139,92,246,.22);
+      border-color:var(--border);
+    }
+    /* AI pick highlight */
+    .card.ai-pick {
+      border-color:rgba(16,185,129,.4);
+      box-shadow:0 0 0 1px rgba(16,185,129,.15),0 4px 20px rgba(16,185,129,.1);
+    }
+
+    .card-img{
+      width:100%;height:158px;
+      background:var(--surf2);
+      display:flex;align-items:center;justify-content:center;
+      position:relative;overflow:hidden;
+    }
+    .card-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s;}
+    .card:hover .card-img img{transform:scale(1.05);}
+    .no-img{display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--text-3);font-size:11px;}
+    .no-img svg{opacity:.3;}
+
+    .score-badge{
+      position:absolute;top:9px;left:9px;
+      padding:3px 9px;border-radius:999px;
+      font-size:11px;font-weight:700;
+      backdrop-filter:blur(8px);
+    }
+    .s-high{background:rgba(16,185,129,.88);color:#fff;}
+    .s-mid {background:rgba(245,158,11,.88);color:#fff;}
+    .s-low {background:rgba(100,116,139,.75);color:#fff;}
+
+    .ai-crown{
+      position:absolute;top:9px;right:9px;
+      background:linear-gradient(135deg,#10b981,#059669);
+      border-radius:999px;padding:3px 9px;
+      font-size:10px;font-weight:700;color:#fff;
+      backdrop-filter:blur(8px);
+    }
+
+    .dist-badge{
+      position:absolute;bottom:9px;left:9px;
+      padding:3px 8px;border-radius:999px;
+      font-size:10px;font-weight:600;
+      backdrop-filter:blur(8px);
+    }
+    .d-exact {background:rgba(59,130,246,.82);color:#fff;}
+    .d-nearby{background:rgba(139,92,246,.82);color:#fff;}
+
+    .card-body{padding:14px;}
+    .card-brand{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);margin-bottom:3px;}
+    .card-title{
+      font-size:13px;font-weight:600;color:var(--text);
+      line-height:1.4;margin-bottom:10px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }
+    .card-price{font-size:20px;font-weight:800;color:var(--green-l);margin-bottom:9px;}
+    .card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
+    .tag{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+    .t-s{background:rgba(59,130,246,.12);color:#93c5fd;}
+    .t-b{background:rgba(16,185,129,.12);color:#6ee7b7;}
+    .t-c{background:rgba(245,158,11,.12);color:#fcd34d;}
+    .t-w{background:rgba(139,92,246,.12);color:#c4b5fd;}
+    .card-loc{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);}
+    .card-loc svg{width:10px;height:10px;flex-shrink:0;}
+    .card-date{font-size:10px;color:var(--text-3);margin-top:5px;}
+
+    /* ── EMPTY ── */
+    .empty{display:none;flex-direction:column;align-items:center;gap:14px;padding:70px 20px;text-align:center;}
+    .empty svg{opacity:.2;}
+    .empty h3{color:var(--text-2);font-weight:600;}
+    .empty p{color:var(--text-3);font-size:13px;max-width:340px;line-height:1.6;}
+
+    .hidden{display:none!important;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hero-glow"></div>
+  <div class="logo-pill">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+    AI-POWERED · OLX INDIA
+  </div>
+  <h1>Find the Best Phone<br>Deals Near You</h1>
+  <p class="subtitle">Multi-location search · Gemini AI deal analysis · Budget filtering · Export your results</p>
+</header>
+
+<!-- Search Card -->
+<div class="search-card">
+  <div class="glass">
+
+    <!-- Mode tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabRec" onclick="setMode('recommend')">⚡ Smart Recommend</button>
+      <button class="tab" id="tabSearch" onclick="setMode('search')">🔍 Search & Filter</button>
+    </div>
+
+    <!-- Row 1: Query + Budget -->
+    <div class="row c2">
+      <div class="field">
+        <label>What are you looking for?</label>
+        <div class="iw">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="pi" type="text" id="q" placeholder="e.g. iphone 14, Samsung S21" value="iphone" />
+        </div>
+      </div>
+      <div class="field">
+        <label id="budgetLabel">Budget (₹ max)</label>
+        <div class="iw">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <input class="pi" type="number" id="budget" placeholder="e.g. 15000" value="15000" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-location input -->
+    <div class="field" style="margin-bottom:12px">
+      <label>Locations <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0">(add multiple, press Enter or comma)</span></label>
+      <div class="chip-field" id="chipField" onclick="document.getElementById('locInput').focus()">
+        <input class="chip-input" id="locInput" placeholder="Type a location and press Enter..." autocomplete="off" />
+      </div>
+      <p class="chip-hint">Press Enter or comma after each location. Click × to remove.</p>
+      <!-- Presets -->
+      <div class="location-presets" id="presets">
+        <span style="font-size:10px;color:var(--text-3);font-weight:600;align-self:center;text-transform:uppercase;letter-spacing:.5px">Quick add:</span>
+        <button class="preset-btn" onclick="addLocation('Sangam Vihar')">Sangam Vihar</button>
+        <button class="preset-btn" onclick="addLocation('Kalkaji')">Kalkaji</button>
+        <button class="preset-btn" onclick="addLocation('Govindpuri')">Govindpuri</button>
+        <button class="preset-btn" onclick="addLocation('Okhla')">Okhla</button>
+        <button class="preset-btn" onclick="addLocation('Saket')">Saket</button>
+        <button class="preset-btn" onclick="addLocation('Delhi')">Delhi</button>
+        <button class="preset-btn" onclick="addLocation('Noida')">Noida</button>
+        <button class="preset-btn" onclick="addLocation('Gurgaon')">Gurgaon</button>
+        <button class="preset-btn" onclick="addLocation('Mumbai')">Mumbai</button>
+        <button class="preset-btn" onclick="addLocation('Bangalore')">Bangalore</button>
+      </div>
+    </div>
+
+    <!-- Recommend options -->
+    <div id="recOpts">
+      <div class="row c2">
+        <div class="field">
+          <label>Pages to Scan</label>
+          <select id="pages">
+            <option value="1">1 page (~40 results)</option>
+            <option value="2" selected>2 pages (~80 results)</option>
+            <option value="3">3 pages (~120 results)</option>
+            <option value="5">5 pages (~200 results)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Top Results</label>
+          <select id="rec_limit">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced (search mode) -->
+    <div class="adv-body" id="advBody">
+      <div class="row c4">
+        <div class="field">
+          <label>Min Price (₹)</label>
+          <input type="number" id="min_price" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Max Price (₹)</label>
+          <input type="number" id="max_price" placeholder="50000" />
+        </div>
+        <div class="field">
+          <label>Sort By</label>
+          <select id="sort">
+            <option value="score">Best Match</option>
+            <option value="newest">Newest</option>
+            <option value="price_asc">Price ↑</option>
+            <option value="price_desc">Price ↓</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Limit</label>
+          <select id="limit">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="search-btn" id="searchBtn" onclick="doSearch()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+      <span id="btnLabel">Find Best Deals with AI</span>
+    </button>
+
+    <button class="adv-link" id="advLink" onclick="toggleAdv()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      Advanced filters
+    </button>
+  </div>
+</div>
+
+<!-- AI Panel -->
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-inner">
+    <div class="ai-header">
+      <div class="ai-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        GEMINI AI ANALYSIS
+      </div>
+    </div>
+
+    <div class="ai-best-pick">
+      <div class="ai-pick-label">🏆 Best Deal Pick</div>
+      <div class="ai-pick-title" id="aiPickTitle">—</div>
+      <div class="ai-reasoning" id="aiReasoning">Analyzing deals...</div>
+    </div>
+
+    <div class="ai-scores">
+      <div class="ai-score-box">
+        <div class="ai-score-num" id="aiScore">—</div>
+        <div class="ai-score-lbl">Value Score / 10</div>
+      </div>
+    </div>
+
+    <div class="ai-flags-header">⚠ Red Flags to Check</div>
+    <ul class="ai-flags" id="aiFlags"></ul>
+
+    <div class="ai-tip">
+      <strong>💡 Negotiation Tip</strong>
+      <span id="aiTip">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-bar" id="statsBar">
+  <div class="stats-inner" id="statsInner">
+    <div id="statsText" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
+    <div class="export-row" id="exportRow">
+      <button class="export-btn export-csv" onclick="exportCSV()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        CSV
+      </button>
+      <button class="export-btn export-json" onclick="exportJSON()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20H4v-3"/><line x1="12" x2="12" y1="4" y2="20"/></svg>
+        JSON
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Error -->
+<div class="err-wrap" id="errWrap">
+  <div class="err-inner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+    <span id="errMsg">Something went wrong.</span>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p id="loadMsg">Scanning OLX India for the best deals...</p>
+    <p class="sub" id="loadSub"></p>
+  </div>
+  <div class="empty" id="empty">
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <h3>No results found</h3>
+    <p>Try a broader location, increase your budget, or use a different search term. OLX may not have listings matching all your filters right now.</p>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  let mode        = 'recommend';
+  let locations   = [];         // array of location chips
+  let lastData    = null;       // last API response (for export)
+  let aiPickIndex = -1;         // 1-based index of AI pick
+
+  // ── Location chips ───────────────────────────────────────────────────────
+  const locInput = document.getElementById('locInput');
+  const chipField= document.getElementById('chipField');
+
+  function addLocation(loc) {
+    loc = loc.trim();
+    if (!loc || locations.includes(loc)) return;
+    locations.push(loc);
+    renderChips();
+    locInput.value = '';
+    locInput.focus();
+  }
+
+  function removeLocation(loc) {
+    locations = locations.filter(l => l !== loc);
+    renderChips();
+  }
+
+  function renderChips() {
+    // Remove all existing chips
+    chipField.querySelectorAll('.chip').forEach(c => c.remove());
+    locations.forEach(loc => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${loc} <span class="chip-x" onclick="removeLocation('${loc.replace(/'/g,"\\'")}')">×</span>`;
+      chipField.insertBefore(chip, locInput);
+    });
+  }
+
+  locInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const v = locInput.value.replace(/,/g, '').trim();
+      if (v) addLocation(v);
+    }
+    if (e.key === 'Backspace' && locInput.value === '' && locations.length > 0) {
+      removeLocation(locations[locations.length - 1]);
+    }
+  });
+  locInput.addEventListener('blur', () => {
+    const v = locInput.value.replace(/,/g, '').trim();
+    if (v) addLocation(v);
+  });
+
+  // ── Mode ──────────────────────────────────────────────────────────────────
+  function setMode(m) {
+    mode = m;
+    document.getElementById('tabRec').classList.toggle('active', m === 'recommend');
+    document.getElementById('tabSearch').classList.toggle('active', m === 'search');
+    document.getElementById('recOpts').style.display    = m === 'recommend' ? '' : 'none';
+    document.getElementById('advLink').style.display    = m === 'search'    ? '' : 'none';
+    document.getElementById('budgetLabel').textContent  = m === 'recommend' ? 'Budget (₹ max)' : 'Budget / Max Price (₹)';
+    document.getElementById('btnLabel').textContent     = m === 'recommend' ? 'Find Best Deals with AI' : 'Search OLX';
+    clearAll();
+  }
+
+  function toggleAdv() {
+    const link = document.getElementById('advLink');
+    const body = document.getElementById('advBody');
+    const open = body.classList.toggle('show');
+    link.classList.toggle('open', open);
+  }
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  async function doSearch() {
+    const q      = document.getElementById('q').value.trim();
+    const budget = document.getElementById('budget').value.trim();
+    if (!q) { shakeInput('q'); return; }
+
+    setLoading(true);
+    clearAll();
+
+    try {
+      let data;
+
+      if (mode === 'recommend') {
+        const pages     = document.getElementById('pages').value;
+        const rec_limit = document.getElementById('rec_limit').value;
+        const params    = new URLSearchParams({ q, pages, limit: rec_limit });
+        if (budget)              params.set('budget', budget);
+        locations.forEach(l =>  params.append('location', l));
+
+        document.getElementById('loadMsg').textContent  = `Scanning ${pages} page(s) of OLX India...`;
+        document.getElementById('loadSub').textContent  = 'Then asking Gemini AI to pick the best deal ✨';
+
+        const resp = await fetch(`/recommend?${params}`);
+        data = await resp.json();
+        if (!data.success) throw new Error(data.error || 'API error');
+
+      } else {
+        const min_price = document.getElementById('min_price').value.trim();
+        const max_price = document.getElementById('max_price').value.trim() || budget;
+        const sort      = document.getElementById('sort').value;
+        const limit     = document.getElementById('limit').value;
+        const params    = new URLSearchParams({ q, sort, limit });
+        if (min_price) params.set('min_price', min_price);
+        if (max_price) params.set('max_price', max_price);
+        locations.forEach(l => params.append('location', l));
+
+        document.getElementById('loadMsg').textContent = `Searching OLX India for "${q}"...`;
+        document.getElementById('loadSub').textContent = '';
+
+        const resp = await fetch(`/search?${params}`);
+        data = await resp.json();
+        if (!data.success) throw new Error(data.error || 'API error');
+      }
+
+      lastData = data;
+      renderStats(data);
+      if (data.ai_analysis) renderAI(data.ai_analysis);
+      renderCards(data.items || []);
+
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── AI Panel ──────────────────────────────────────────────────────────────
+  function renderAI(ai) {
+    if (!ai) return;
+    const panel = document.getElementById('aiPanel');
+    panel.style.display = 'block';
+
+    aiPickIndex = ai.best_deal_index || -1;
+
+    document.getElementById('aiPickTitle').textContent = ai.best_deal_title || '—';
+    document.getElementById('aiReasoning').textContent = ai.reasoning || '—';
+    document.getElementById('aiScore').textContent     = ai.value_score ? `${ai.value_score}/10` : '—';
+    document.getElementById('aiTip').textContent       = ai.negotiation_tip || '—';
+
+    const flagsList = document.getElementById('aiFlags');
+    flagsList.innerHTML = '';
+    (ai.red_flags || []).forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      flagsList.appendChild(li);
+    });
+  }
+
+  // ── Stats bar ─────────────────────────────────────────────────────────────
+  function renderStats(data) {
+    const bar = document.getElementById('statsBar');
+    bar.style.display = 'block';
+    const txt = document.getElementById('statsText');
+
+    let html = `<span class="stat"><strong>${data.count}</strong> results</span>`;
+
+    const src = data.query?.location_source;
+    if (src === 'olx_location_filter') {
+      html += `<span class="sdiv"></span><span class="src-badge src-olx">✓ OLX location filter</span>`;
+    } else if (src === 'post_filter') {
+      html += `<span class="sdiv"></span><span class="src-badge src-post">📍 Post-filtered</span>`;
+    }
+    if (data.query?.budget) {
+      html += `<span class="sdiv"></span><span class="stat">Budget <strong>₹${Number(data.query.budget).toLocaleString('en-IN')}</strong></span>`;
+    }
+    const locs = data.query?.locations || (data.query?.location ? [data.query.location] : []);
+    if (locs.length > 0) {
+      html += `<span class="sdiv"></span><span class="stat">Near <strong>${locs.join(', ')}</strong></span>`;
+    }
+    if (data.ai_analysis) {
+      html += `<span class="sdiv"></span><span class="stat" style="color:var(--purple-l)">✨ AI analyzed</span>`;
+    }
+
+    txt.innerHTML = html;
+  }
+
+  // ── Cards ─────────────────────────────────────────────────────────────────
+  function renderCards(items) {
+    const grid = document.getElementById('grid');
+    if (!items || items.length === 0) {
+      document.getElementById('empty').style.display = 'flex';
+      return;
+    }
+    grid.innerHTML = '';
+
+    items.forEach((item, i) => {
+      const isAIPick = (i + 1) === aiPickIndex;
+      const card = document.createElement('a');
+      card.href   = item.url || item.link || '#';
+      card.target = '_blank';
+      card.rel    = 'noopener noreferrer';
+      card.className = 'card' + (isAIPick ? ' ai-pick' : '');
+      card.style.animationDelay = `${i * 35}ms`;
+
+      const score      = item.score;
+      const scoreClass = score >= 75 ? 's-high' : score >= 50 ? 's-mid' : 's-low';
+      const priceStr   = item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : item.price_text || '—';
+      const imgUrl     = item.image || '';
+      const distClass  = item.distance === 'exact' ? 'd-exact' : 'd-nearby';
+      const distLabel  = item.distance === 'exact' ? '📍 Exact' : item.distance === 'nearby' ? '〰 Nearby' : '';
+
+      let tags = '';
+      if (item.storage)        tags += `<span class="tag t-s">💾 ${item.storage}</span>`;
+      if (item.battery_health) tags += `<span class="tag t-b">🔋 ${item.battery_health}</span>`;
+      if (item.condition)      tags += `<span class="tag t-c">${item.condition}</span>`;
+      if (item.warranty)       tags += `<span class="tag t-w">🛡 ${item.warranty}</span>`;
+
+      card.innerHTML = `
+        <div class="card-img">
+          ${imgUrl
+            ? `<img src="${imgUrl}" alt="${escHtml(item.title)}" loading="lazy" />`
+            : `<div class="no-img"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span>No image</span></div>`}
+          ${score != null ? `<span class="score-badge ${scoreClass}">★ ${score}</span>` : ''}
+          ${isAIPick      ? `<span class="ai-crown">🏆 AI Pick</span>` : ''}
+          ${distLabel     ? `<span class="dist-badge ${distClass}">${distLabel}</span>` : ''}
+        </div>
+        <div class="card-body">
+          ${item.brand ? `<div class="card-brand">${escHtml(item.brand)}</div>` : ''}
+          <div class="card-title">${escHtml(item.title || 'Untitled')}</div>
+          <div class="card-price">${priceStr}</div>
+          ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+          <div class="card-loc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${escHtml(item.location || 'Location unknown')}
+          </div>
+          ${item.date_text ? `<div class="card-date">🕐 ${escHtml(item.date_text)}</div>` : ''}
+        </div>`;
+
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!lastData?.items?.length) return;
+    const headers = ['score','title','brand','model','price','currency','location','distance','date_parsed','storage','ram','battery_health','condition','warranty','url'];
+    const rows = lastData.items.map(it =>
+      headers.map(h => {
+        const v = it[h] ?? '';
+        return typeof v === 'string' && v.includes(',') ? `"${v.replace(/"/g,'""')}"` : v;
+      }).join(',')
+    );
+    download([headers.join(','), ...rows].join('\n'), 'olx-deals.csv', 'text/csv');
+  }
+
+  function exportJSON() {
+    if (!lastData) return;
+    download(JSON.stringify(lastData, null, 2), 'olx-deals.json', 'application/json');
+  }
+
+  function download(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function setLoading(on) {
+    document.getElementById('searchBtn').disabled = on;
+    document.getElementById('loading').style.display = on ? 'flex' : 'none';
+    if (!on) { document.getElementById('loadMsg').textContent = 'Scanning OLX India...'; document.getElementById('loadSub').textContent = ''; }
+  }
+
+  function showError(msg) {
+    document.getElementById('errMsg').textContent = msg;
+    document.getElementById('errWrap').style.display = 'block';
+  }
+
+  function clearAll() {
+    document.getElementById('grid').innerHTML = '';
+    document.getElementById('statsBar').style.display = 'none';
+    document.getElementById('aiPanel').style.display  = 'none';
+    document.getElementById('empty').style.display    = 'none';
+    document.getElementById('errWrap').style.display  = 'none';
+    lastData    = null;
+    aiPickIndex = -1;
+  }
+
+  function shakeInput(id) {
+    const el = document.getElementById(id);
+    el.style.borderColor = 'var(--red)';
+    el.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.2)';
+    setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1500);
+    el.focus();
+  }
+
+  // Enter key on non-chip inputs
+  document.addEventListener('keydown', e => {
+    if (e.target === locInput) return; // handled above
+    if (e.key === 'Enter' && !document.getElementById('searchBtn').disabled) doSearch();
+  });
+
+  // Init
+  setMode('recommend');
+  // Pre-add default location
+  addLocation('Sangam Vihar');
+</script>
+</body>
+</html>
