@@ -6,7 +6,7 @@ services:
     region: frankfurt
     autoDeploy: true
 
-    repo: https://github.com/gnez360/olx-scrapper.git
+    repo: https://github.com/hackhaveli/olx-Scrapper-with-ai.git
     branch: main
   
     startCommand: "npm start" 
